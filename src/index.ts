@@ -5,7 +5,6 @@ export default {
 		// const clientIP = request.headers.get('CF-Connecting-IP');
 
 		console.log(requestHeaders);
-
-		return new Response(requestHeaders);
+		return Response.json([...request.headers]);
 	},
 } satisfies ExportedHandler<Env>;
