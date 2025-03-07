@@ -13,17 +13,17 @@ export function isIpInRange(ip: string, range: string): boolean {
 		// IPバージョンが異なる場合はfalse
 		if (isIpv6 !== isRangeIpv6) return false;
 
-		// 非常に単純な実装（実際の完全なCIDRマッチングはもっと複雑）
-		// ここでは単純にプレフィックス文字列を比較
 		if (isIpv6) {
+			// IPv6の場合
 			const [rangePrefix, bits] = range.split('/');
 			const prefixLength = parseInt(bits, 10);
 
-			// 単純化のために最初のセグメントだけで比較（完全実装ではありません）
-			const ipParts = ip.split(':')[0];
-			const rangeParts = rangePrefix.split(':')[0];
+			// IPv6アドレスの標準化（圧縮形式を展開）
+			const normalizedIp = expandIPv6(ip);
+			const normalizedRange = expandIPv6(rangePrefix);
 
-			return ipParts === rangeParts;
+			// ビット単位で比較
+			return compareIPv6Prefix(normalizedIp, normalizedRange, prefixLength);
 		} else {
 			const [rangePrefix, bits] = range.split('/');
 			const prefixLength = parseInt(bits, 10);
@@ -54,6 +54,61 @@ export function isIpInRange(ip: string, range: string): boolean {
 		console.error('IP範囲チェックエラー:', e);
 		return false;
 	}
+}
+
+/**
+ * 圧縮形式のIPv6アドレスを完全な形式に展開します
+ * @param ipv6 IPv6アドレス
+ * @returns 完全形式のIPv6アドレス
+ */
+function expandIPv6(ipv6: string): string {
+	// ::を展開
+	if (ipv6.includes('::')) {
+		const parts = ipv6.split('::');
+		const left = parts[0] ? parts[0].split(':') : [];
+		const right = parts[1] ? parts[1].split(':') : [];
+		const missing = 8 - left.length - right.length;
+		const zeros = Array(missing).fill('0000');
+
+		const expanded = [...left, ...zeros, ...right];
+		return expanded.map((part) => part.padStart(4, '0')).join(':');
+	}
+
+	// 既に展開済みの場合でも、各パートを4桁にする
+	return ipv6
+		.split(':')
+		.map((part) => part.padStart(4, '0'))
+		.join(':');
+}
+
+/**
+ * 2つのIPv6アドレスを指定されたプレフィックス長に基づいて比較します
+ * @param ip1 比較対象のIPv6アドレス（完全展開形式）
+ * @param ip2 比較するIPv6アドレス（完全展開形式）
+ * @param prefixLength 比較するビット数
+ * @returns プレフィックスが一致する場合はtrue
+ */
+function compareIPv6Prefix(ip1: string, ip2: string, prefixLength: number): boolean {
+	const ip1Parts = ip1.split(':').map((part) => parseInt(part, 16));
+	const ip2Parts = ip2.split(':').map((part) => parseInt(part, 16));
+
+	// 完全な16ビットブロックを比較
+	const fullBlocks = Math.floor(prefixLength / 16);
+	for (let i = 0; i < fullBlocks; i++) {
+		if (ip1Parts[i] !== ip2Parts[i]) return false;
+	}
+
+	// 残りのビットを比較
+	const remainingBits = prefixLength % 16;
+	if (remainingBits > 0) {
+		// 残りのビットに対するマスクを作成
+		const mask = 0xffff - ((1 << (16 - remainingBits)) - 1);
+		if ((ip1Parts[fullBlocks] & mask) !== (ip2Parts[fullBlocks] & mask)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /**

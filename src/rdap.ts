@@ -94,7 +94,15 @@ export async function fetchRdap(ip: string): Promise<any> {
 		const baseUrl = await getRdapServerUrl(ip);
 
 		// サーバーURLが既にパスを含む場合とそうでない場合で処理を分ける
-		const rdapUrl = baseUrl.endsWith('/') ? `${baseUrl}ip/${ip}` : `${baseUrl}/${ip}`;
+		// URLのパターンをより正確に扱う
+		let rdapUrl;
+		if (baseUrl.endsWith('/')) {
+			rdapUrl = `${baseUrl}ip/${ip}`;
+		} else if (baseUrl.includes('/ip')) {
+			rdapUrl = `${baseUrl}/${ip}`;
+		} else {
+			rdapUrl = `${baseUrl}/ip/${ip}`;
+		}
 
 		console.log(`Using RDAP endpoint: ${rdapUrl}`);
 
