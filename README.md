@@ -82,3 +82,6 @@ npm test
 ```
 
 ## ライセンス
+
+Copyright (C) 2024-2025 Adenohitu
+このソフトウェアは GNU Affero General Public License v3.0 (AGPLv3)のライセンスのもとで公開されています。
