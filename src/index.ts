@@ -4,7 +4,7 @@ import { isPrivateIP } from './utils/ip';
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
-		const clientIP = '153.127.49.194';
+		const clientIP = request.headers.get('cf-connecting-ip');
 
 		if (clientIP === null) {
 			return Response.json({
