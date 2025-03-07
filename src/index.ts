@@ -16,7 +16,28 @@ export default {
 		// /rdap/all エンドポイントの処理
 		if (url.pathname === '/rdap/all') {
 			try {
-				const rdapData = await fetchRdap(clientIP);
+				// キャッシュキーを作成
+				const cacheKey = new Request(`https://rdap-cache/${clientIP}`, request);
+				const cache = caches.default;
+
+				// キャッシュからデータを取得を試みる
+				let rdapResponse = await cache.match(cacheKey);
+				let rdapData;
+
+				if (!rdapResponse) {
+					// キャッシュにない場合は取得してキャッシュに保存
+					rdapData = await fetchRdap(clientIP);
+					if (rdapData) {
+						rdapResponse = Response.json(rdapData);
+						// キャッシュに1時間保存
+						rdapResponse.headers.append('Cache-Control', 's-maxage=86400');
+						ctx.waitUntil(cache.put(cacheKey, rdapResponse.clone()));
+					}
+				} else {
+					// キャッシュから取得できた場合
+					rdapData = await rdapResponse.json();
+				}
+
 				if (rdapData) {
 					return Response.json(rdapData);
 				} else {
@@ -43,7 +64,28 @@ export default {
 			});
 		} else {
 			try {
-				const rdapData = await fetchRdap(clientIP);
+				// キャッシュキーを作成
+				const cacheKey = new Request(`https://rdap-cache/${clientIP}`, request);
+				const cache = caches.default;
+
+				// キャッシュからデータを取得を試みる
+				let rdapResponse = await cache.match(cacheKey);
+				let rdapData;
+
+				if (!rdapResponse) {
+					// キャッシュにない場合は取得してキャッシュに保存
+					rdapData = await fetchRdap(clientIP);
+					if (rdapData) {
+						rdapResponse = Response.json(rdapData);
+						// キャッシュに1時間保存
+						rdapResponse.headers.append('Cache-Control', 's-maxage=86400');
+						ctx.waitUntil(cache.put(cacheKey, rdapResponse.clone()));
+					}
+				} else {
+					// キャッシュから取得できた場合
+					rdapData = await rdapResponse.json();
+				}
+
 				if (!rdapData) {
 					throw new Error('RDAP data not available');
 				}
